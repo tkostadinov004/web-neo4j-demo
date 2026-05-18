@@ -29,10 +29,7 @@ class Cinema {
   }
 }
 
-export async function get_closest_vertex_id(
-  lat: number,
-  lon: number,
-): Promise<number | null> {
+export async function get_closest_vertex_id(lat: number, lon: number): Promise<number | null> {
   const pool: Pool = get_pg_pool();
   let conn;
   try {
@@ -45,8 +42,8 @@ export async function get_closest_vertex_id(
         limit 1;
         `,
         lon,
-        lat,
-      ),
+        lat
+      )
     );
     return res.rowCount == 0 ? null : res.rows[0].id;
   } finally {
@@ -75,8 +72,8 @@ export async function get_path_by_nodes(nodes: string): Promise<string | null> {
         )
         select st_asgeojson(st_union(line_between)) as path from pair_edges;
         `,
-        nodes,
-      ),
+        nodes
+      )
     );
     return res.rowCount == 0 ? null : res.rows[0].path;
   } finally {
@@ -95,7 +92,7 @@ export async function get_all_cinemas(): Promise<Cinema[]> {
       `
         select ogc_fid as id, st_y(wkb_geometry) as lat, st_x(wkb_geometry) as lon, name
         from cinemas
-      `,
+      `
     );
     return res.rows.map((r) => new Cinema(r.id, r.lat, r.lon, r.name));
   } finally {

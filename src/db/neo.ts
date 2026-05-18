@@ -1,13 +1,7 @@
 import neo4j from "neo4j-driver";
 
 require("dotenv").config();
-const driver = neo4j.driver(
-  process.env.NEO4J_URI ?? "",
-  neo4j.auth.basic(
-    process.env.NEO4J_USER ?? "",
-    process.env.NEO4J_PASSWORD ?? "",
-  ),
-);
+const driver = neo4j.driver(process.env.NEO4J_URI ?? "", neo4j.auth.basic(process.env.NEO4J_USER ?? "", process.env.NEO4J_PASSWORD ?? ""));
 
 const create_session = function () {
   return driver.session({ database: process.env.NEO4J_DATABASE });
@@ -23,10 +17,7 @@ class NeoResponse {
   }
 }
 
-export async function find_shortest_path_nodes(
-  source_id: number,
-  target_id: number,
-): Promise<NeoResponse | null> {
+export async function find_shortest_path_nodes(source_id: number, target_id: number): Promise<NeoResponse | null> {
   const session = create_session();
   const res = await session.executeRead((tx) =>
     tx.run(
@@ -47,13 +38,8 @@ export async function find_shortest_path_nodes(
 
         MATCH (source)-[road:ROAD]-(target) return totalCost, collect(road.geometry) as geom_sequence;
     `,
-      { source_id: source_id.toString(), target_id: target_id.toString() },
-    ),
+      { source_id: source_id.toString(), target_id: target_id.toString() }
+    )
   );
-  return res.records.length == 0
-    ? null
-    : new NeoResponse(
-        res.records[0].get("geom_sequence"),
-        res.records[0].get("totalCost"),
-      );
+  return res.records.length == 0 ? null : new NeoResponse(res.records[0].get("geom_sequence"), res.records[0].get("totalCost"));
 }

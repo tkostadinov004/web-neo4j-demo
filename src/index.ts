@@ -23,12 +23,7 @@ app.get("/distance_to_cinemas", async (req, res) => {
     return;
   }
 
-  res.send(
-    await fetch_distance_to_cinemas(
-      Number.parseFloat(req.query.lat.toString()),
-      Number.parseFloat(req.query.lon.toString()),
-    ),
-  );
+  res.send(await fetch_distance_to_cinemas(Number.parseFloat(req.query.lat.toString()), Number.parseFloat(req.query.lon.toString())));
 });
 
 app.listen(port, () => {
