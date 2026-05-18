@@ -1,37 +1,51 @@
 import express from "express";
+import { find_shortest_path_nodes } from "./db/neo";
+import {
+  get_all_cinemas,
+  get_closest_vertex_id,
+  get_path_by_nodes,
+} from "./db/postgis";
+import path from "path";
+import { fetch_distance_to_cinemas } from "./cinema_service";
 
 require("dotenv").config();
-
-const neo4j = require("neo4j-driver");
-const neo4jUri = process.env.NEO4J_URI;
-let database = process.env.NEO4J_DATABASE;
-const driver = neo4j.driver(
-  neo4jUri,
-  neo4j.auth.basic(process.env.NEO4J_USER, process.env.NEO4J_PASSWORD),
-);
-
-function test() {
-  const session = driver.session({ database: database });
-  return session
-    .executeRead((tx: any) => tx.run("", { title: "test" }))
-    .then((result: { records: any[] }) => {
-      return result.records.map((record: { get: (arg0: string) => any }) => {
-        return {};
-      });
-    })
-    .catch((error: any) => {
-      throw error;
-    })
-    .finally(() => {
-      return session.close();
-    });
-}
-
 const port = "3000";
+const public_dir = "public";
 const app = express();
+app.use(express.static(public_dir));
 
 app.get("/", (req, res) => {
-  test();
+  res.sendFile(path.join(public_dir, "index.html"));
+});
+
+app.get("/cinemas", async (req, res) => {
+  res.json(await get_all_cinemas());
+});
+
+class ShortestPathResponse {
+  cinema_id: number;
+  path: string;
+  total_cost: number;
+
+  constructor(cinema_id: number, path: string, total_cost: number) {
+    this.cinema_id = cinema_id;
+    this.path = path;
+    this.total_cost = total_cost;
+  }
+}
+
+app.get("/distance_to_cinemas", async (req, res) => {
+  if (!req.query.lat || !req.query.lon) {
+    res.status(400).json({ message: "Provide latitude and longitude!" });
+    return;
+  }
+
+  res.send(
+    await fetch_distance_to_cinemas(
+      Number.parseFloat(req.query.lat.toString()),
+      Number.parseFloat(req.query.lon.toString()),
+    ),
+  );
 });
 
 app.listen(port, () => {
