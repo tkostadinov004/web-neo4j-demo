@@ -1,10 +1,5 @@
 import express from "express";
-import { find_shortest_path_nodes } from "./db/neo";
-import {
-  get_all_cinemas,
-  get_closest_vertex_id,
-  get_path_by_nodes,
-} from "./db/postgis";
+import { get_all_cinemas } from "./db/postgis";
 import path from "path";
 import { fetch_distance_to_cinemas } from "./cinema_service";
 
@@ -21,18 +16,6 @@ app.get("/", (req, res) => {
 app.get("/cinemas", async (req, res) => {
   res.json(await get_all_cinemas());
 });
-
-class ShortestPathResponse {
-  cinema_id: number;
-  path: string;
-  total_cost: number;
-
-  constructor(cinema_id: number, path: string, total_cost: number) {
-    this.cinema_id = cinema_id;
-    this.path = path;
-    this.total_cost = total_cost;
-  }
-}
 
 app.get("/distance_to_cinemas", async (req, res) => {
   if (!req.query.lat || !req.query.lon) {
