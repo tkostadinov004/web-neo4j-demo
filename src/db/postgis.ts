@@ -65,15 +65,13 @@ export async function get_path_by_nodes(nodes: string): Promise<string | null> {
       format(
         `
         with nodes as (
-            select node_id::bigint, ord
+            select st_geomfromgeojson(node_geom) as geom, ord
             from unnest(string_to_array(%L, ', '))
-            with ordinality as t(node_id, ord)
+            with ordinality as t(node_geom, ord)
         ), pair_edges as (
-            select st_makeline(pnnvp_1.the_geom, pnnvp_2.the_geom) as line_between
+            select st_makeline(n1.geom, n2.geom) as line_between
             from nodes as n1
             join nodes as n2 on n2.ord = n1.ord + 1
-            join pedestrian_network_noded_vertices_pgr pnnvp_1 on pnnvp_1.id = n1.node_id
-            join pedestrian_network_noded_vertices_pgr pnnvp_2 on pnnvp_2.id = n2.node_id
         )
         select st_asgeojson(st_union(line_between)) as path from pair_edges;
         `,

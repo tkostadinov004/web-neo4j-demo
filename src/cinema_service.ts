@@ -41,6 +41,7 @@ export async function fetch_distance_to_cinemas(
           closest_vertex_to_origin,
           closest_vertex_id,
         );
+
         if (!shortest_path_neo) {
           return null;
         }

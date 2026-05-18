@@ -31,19 +31,21 @@ export async function find_shortest_path_nodes(
   const res = await session.executeRead((tx) =>
     tx.run(
       `
-        MATCH (source:Intersection {id: $source_id})
-        MATCH (target:Intersection {id: $target_id})
+        MATCH (start:Intersection {id: $source_id})
+        MATCH (end:Intersection {id: $target_id})
 
         CALL gds.shortestPath.dijkstra.stream('streetNetwork', {
-        sourceNode: source,
-        targetNode: target,
-        relationshipWeightProperty: 'cost'
+          sourceNode: start,
+          targetNode: end,
+          relationshipWeightProperty: 'cost'
         })
         YIELD path, totalCost
 
-        RETURN 
-        totalCost,
-        [node IN nodes(path) | node.id] AS node_sequence;
+        WITH totalCost, nodes(path) AS pathNodes
+        UNWIND range(0, size(pathNodes) - 2) AS index
+        WITH totalCost, pathNodes[index] AS source, pathNodes[index+1] AS target
+
+        MATCH (source)-[road:ROAD]-(target) return totalCost, collect(road.geometry) as geom_sequence;
     `,
       { source_id: source_id.toString(), target_id: target_id.toString() },
     ),
@@ -51,7 +53,7 @@ export async function find_shortest_path_nodes(
   return res.records.length == 0
     ? null
     : new NeoResponse(
-        res.records[0].get("node_sequence"),
+        res.records[0].get("geom_sequence"),
         res.records[0].get("totalCost"),
       );
 }
