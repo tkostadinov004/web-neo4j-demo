@@ -1,12 +1,9 @@
 const map = L.map("map").setView([42.6977, 23.3219], 13);
 
-L.tileLayer(
-  "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-  {
-    attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
-    maxZoom: 19,
-  },
-).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+  attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+  maxZoom: 19,
+}).addTo(map);
 
 let starting_marker = null;
 let cinema_markers = [];
@@ -19,10 +16,8 @@ const loader_overlay = document.getElementById("loader-overlay");
 const table_body = document.getElementById("cinema-table-body"); // New reference for the table
 
 const start_icon = L.icon({
-  iconUrl:
-    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
@@ -40,9 +35,7 @@ async function fetch_cinemas() {
 }
 
 async function api_calculate_paths(start_lat_lng, cinemas) {
-  const res = await fetch(
-    `/distance_to_cinemas?lat=${start_lat_lng.lat}&lon=${start_lat_lng.lng}`,
-  );
+  const res = await fetch(`/distance_to_cinemas?lat=${start_lat_lng.lat}&lon=${start_lat_lng.lng}`);
   const data = await res.json();
   return data;
 }
