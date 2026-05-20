@@ -1,14 +1,13 @@
 CREATE CONSTRAINT intersection_id IF NOT EXISTS FOR (i:Intersection) REQUIRE i.id IS UNIQUE;
 
 LOAD CSV WITH HEADERS FROM 'file:///nodes.csv' AS row
-CREATE (:Intersection {id: row.node_id});
+CREATE (:Intersection {id: row.id, geom: row.geom});
 
 LOAD CSV WITH HEADERS FROM 'file:///pedestrian_network_noded.csv' AS row
 MATCH (source:Intersection {id: row.source})
 MATCH (target:Intersection {id: row.target})
 CREATE (source)-[r:ROAD {
-  cost: toFloat(row.cost), 
-  geometry: row.geom
+  cost: toFloat(row.cost)
 }]->(target);
 
 CALL gds.graph.project(
@@ -34,8 +33,4 @@ CALL gds.shortestPath.dijkstra.stream('streetNetwork', {
 })
 YIELD path, totalCost
 
-WITH totalCost, nodes(path) AS pathNodes
-UNWIND range(0, size(pathNodes) - 2) AS index
-WITH totalCost, pathNodes[index] AS source, pathNodes[index+1] AS target
-
-MATCH (source)-[road:ROAD]-(target) return totalCost, collect(road.geometry);
+RETURN totalCost, [node IN nodes(path) | node.geom] as geom_sequence;

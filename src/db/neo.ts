@@ -32,11 +32,7 @@ export async function find_shortest_path_nodes(source_id: number, target_id: num
         })
         YIELD path, totalCost
 
-        WITH totalCost, nodes(path) AS pathNodes
-        UNWIND range(0, size(pathNodes) - 2) AS index
-        WITH totalCost, pathNodes[index] AS source, pathNodes[index+1] AS target
-
-        MATCH (source)-[road:ROAD]-(target) return totalCost, collect(road.geometry) as geom_sequence;
+        RETURN totalCost, [node IN nodes(path) | node.geom] as geom_sequence;
     `,
       { source_id: source_id.toString(), target_id: target_id.toString() }
     )

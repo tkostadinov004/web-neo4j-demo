@@ -6,17 +6,35 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 }).addTo(map);
 
 let starting_marker = null;
-let cinema_markers = [];
+let cinema_markers = {};
 let path_layers = [];
 let global_cinemas_data = [];
 let cinema_names = {};
 
 const calc_btn = document.getElementById("calc-btn");
 const loader_overlay = document.getElementById("loader-overlay");
-const table_body = document.getElementById("cinema-table-body"); // New reference for the table
+const table_body = document.getElementById("cinema-table-body");
 
 const start_icon = L.icon({
   iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+const yellow_icon = L.icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+const default_blue_icon = L.icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png",
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
@@ -46,7 +64,7 @@ async function init() {
     global_cinemas_data = await fetch_cinemas();
 
     global_cinemas_data.forEach((cinema) => {
-      const marker = L.marker([cinema.lat, cinema.lon]).addTo(map);
+      const marker = L.marker([cinema.lat, cinema.lon], { icon: default_blue_icon }).addTo(map);
 
       marker.bindPopup(`
             <div style="font-size: 14px;">
@@ -54,7 +72,7 @@ async function init() {
             </div>
         `);
 
-      cinema_markers.push(marker);
+      cinema_markers[cinema.id] = marker;
       cinema_names[cinema.id] = cinema.name;
     });
   } finally {
@@ -88,7 +106,15 @@ calc_btn.addEventListener("click", async () => {
     clear_paths();
     table_body.innerHTML = "";
 
-    paths.forEach((path_obj, index) => {
+    paths.forEach((path_obj) => {
+      if (cinema_markers[path_obj.cinema_id]) {
+        if (path_obj.is_closest) {
+          cinema_markers[path_obj.cinema_id].setIcon(yellow_icon);
+        } else {
+          cinema_markers[path_obj.cinema_id].setIcon(default_blue_icon);
+        }
+      }
+
       const path_options = path_obj.is_closest
         ? {
             color: "#28a745", // Green
@@ -141,7 +167,7 @@ calc_btn.addEventListener("click", async () => {
 function clear_paths() {
   path_layers.forEach((layer) => map.removeLayer(layer));
   path_layers = [];
-  table_body.innerHTML = ""; // Also clear the table when paths are cleared
+  table_body.innerHTML = "";
 }
 
 init();
