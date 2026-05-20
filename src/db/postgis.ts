@@ -20,12 +20,14 @@ class Cinema {
   lat: number;
   lon: number;
   name: string;
+  closest_vertex_id: number;
 
-  constructor(id: number, lat: number, lon: number, name: string) {
+  constructor(id: number, lat: number, lon: number, name: string, closest_vertex_id: number) {
     this.id = id;
     this.lat = lat;
     this.lon = lon;
     this.name = name;
+    this.closest_vertex_id = closest_vertex_id;
   }
 }
 
@@ -90,11 +92,13 @@ export async function get_all_cinemas(): Promise<Cinema[]> {
     conn = await pool.connect();
     const res = await conn.query(
       `
-        select ogc_fid as id, st_y(wkb_geometry) as lat, st_x(wkb_geometry) as lon, name
-        from cinemas
+        select ogc_fid as id, st_y(wkb_geometry) as lat, 
+          st_x(wkb_geometry) as lon, 
+          name, (select pnnvp.id from pedestrian_network_noded_vertices_pgr pnnvp order by pnnvp.the_geom <-> wkb_geometry limit 1) as closest_vertex
+	      from cinemas;
       `
     );
-    return res.rows.map((r) => new Cinema(r.id, r.lat, r.lon, r.name));
+    return res.rows.map((r) => new Cinema(r.id, r.lat, r.lon, r.name, r.closest_vertex));
   } finally {
     if (conn) {
       conn.release();

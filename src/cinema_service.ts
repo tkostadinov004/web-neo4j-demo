@@ -24,12 +24,7 @@ export async function fetch_distance_to_cinemas(lat: number, lon: number): Promi
   let result: ShortestPathResponse[] = (
     await Promise.all(
       cinemas.map(async (c) => {
-        const closest_vertex_id = await get_closest_vertex_id(c.lat, c.lon);
-        if (!closest_vertex_id) {
-          throw new Error("Unable to get closest vertex to cinema coordinates!");
-        }
-        const shortest_path_neo = await find_shortest_path_nodes(closest_vertex_to_origin, closest_vertex_id);
-
+        const shortest_path_neo = await find_shortest_path_nodes(closest_vertex_to_origin, c.closest_vertex_id);
         if (!shortest_path_neo) {
           return null;
         }
