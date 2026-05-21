@@ -1,5 +1,6 @@
-import { find_shortest_path_nodes } from "./db/neo";
+import { find_shortest_path_nodes, NeoResponse } from "./db/neo";
 import { get_all_cinemas, get_closest_vertex_id, get_path_by_nodes } from "./db/postgis";
+import { Cinema } from "./model/cinema";
 
 export class ShortestPathResponse {
   cinema_id: number;
@@ -21,18 +22,23 @@ export async function fetch_distance_to_cinemas(lat: number, lon: number): Promi
   }
 
   const cinemas = await get_all_cinemas();
+  const shortest_paths_to_cinemas: Map<number, NeoResponse> = await find_shortest_path_nodes(
+    closest_vertex_to_origin,
+    cinemas.map((c) => c.closest_vertex_id)
+  );
+
   let result: ShortestPathResponse[] = (
     await Promise.all(
       cinemas.map(async (c) => {
-        const shortest_path_neo = await find_shortest_path_nodes(closest_vertex_to_origin, c.closest_vertex_id);
-        if (!shortest_path_neo) {
+        const shortest_path_nodes = shortest_paths_to_cinemas.get(c.closest_vertex_id);
+        if (!shortest_path_nodes) {
           return null;
         }
-        const shortest_path = await get_path_by_nodes(shortest_path_neo.path.join(", "));
+        const shortest_path = await get_path_by_nodes(shortest_path_nodes.path.join(", "));
         if (!shortest_path) {
           return null;
         }
-        return new ShortestPathResponse(c.id, shortest_path, shortest_path_neo.total_cost);
+        return new ShortestPathResponse(c.id, shortest_path, shortest_path_nodes.total_cost);
       })
     )
   )

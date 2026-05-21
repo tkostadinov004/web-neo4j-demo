@@ -1,5 +1,6 @@
 import { Pool } from "pg";
 import format from "pg-format";
+import { Cinema } from "../model/cinema";
 
 const get_pg_pool = function () {
   return new Pool({
@@ -14,22 +15,6 @@ const get_pg_pool = function () {
     ssl: true,
   });
 };
-
-class Cinema {
-  id: number;
-  lat: number;
-  lon: number;
-  name: string;
-  closest_vertex_id: number;
-
-  constructor(id: number, lat: number, lon: number, name: string, closest_vertex_id: number) {
-    this.id = id;
-    this.lat = lat;
-    this.lon = lon;
-    this.name = name;
-    this.closest_vertex_id = closest_vertex_id;
-  }
-}
 
 export async function get_closest_vertex_id(lat: number, lon: number): Promise<number | null> {
   const pool: Pool = get_pg_pool();

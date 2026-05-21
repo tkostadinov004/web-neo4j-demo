@@ -7,23 +7,25 @@ const create_session = function () {
   return driver.session({ database: process.env.NEO4J_DATABASE });
 };
 
-class NeoResponse {
+export class NeoResponse {
+  target_id: number;
   path: string[];
   total_cost: number;
 
-  constructor(path: string[], total_cost: number) {
+  constructor(target_id: number, path: string[], total_cost: number) {
+    this.target_id = target_id;
     this.path = path;
     this.total_cost = total_cost;
   }
 }
 
-export async function find_shortest_path_nodes(source_id: number, target_id: number): Promise<NeoResponse | null> {
+export async function find_shortest_path_nodes(source_id: number, target_ids: number[]): Promise<Map<number, NeoResponse>> {
   const session = create_session();
   const res = await session.executeRead((tx) =>
     tx.run(
       `
         MATCH (start:Intersection {id: $source_id})
-        MATCH (end:Intersection {id: $target_id})
+        MATCH (end:Intersection) WHERE end.id IN $target_ids
 
         CALL gds.shortestPath.dijkstra.stream('streetNetwork', {
           sourceNode: start,
@@ -32,10 +34,12 @@ export async function find_shortest_path_nodes(source_id: number, target_id: num
         })
         YIELD path, totalCost
 
-        RETURN totalCost, [node IN nodes(path) | node.geom] as geom_sequence;
+        RETURN end.id as end_id, totalCost, [node IN nodes(path) | node.geom] as geom_sequence;
     `,
-      { source_id: source_id.toString(), target_id: target_id.toString() }
+      { source_id: source_id.toString(), target_ids: target_ids.map((t) => t.toString()) }
     )
   );
-  return res.records.length == 0 ? null : new NeoResponse(res.records[0].get("geom_sequence"), res.records[0].get("totalCost"));
+  let result: Map<number, NeoResponse> = new Map();
+  res.records.forEach((r) => result.set(r.get("end_id"), new NeoResponse(r.get("end_id"), r.get("geom_sequence"), r.get("totalCost"))));
+  return result;
 }
