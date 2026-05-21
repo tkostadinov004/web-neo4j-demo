@@ -85,7 +85,7 @@ map.on("click", function (e) {
     starting_marker.setLatLng(e.latlng);
   } else {
     starting_marker = L.marker(e.latlng, { icon: start_icon }).addTo(map);
-    starting_marker.bindPopup("<b>Starting Point</b>").openPopup();
+    starting_marker.bindPopup("<b>Начална точка</b>").openPopup();
 
     calc_btn.disabled = false;
   }
@@ -135,7 +135,7 @@ calc_btn.addEventListener("click", async () => {
 
       if (path_obj.is_closest) {
         line.bringToFront();
-        line.bindTooltip(`Closest: ${path_obj.total_cost.toFixed(2)} minutes`, {
+        line.bindTooltip(`Най-близко: ${path_obj.total_cost.toFixed(2)} минути`, {
           permanent: false,
           sticky: true,
         });
@@ -157,7 +157,7 @@ calc_btn.addEventListener("click", async () => {
     });
   } catch (error) {
     console.error("Error calculating paths:", error);
-    alert("Failed to calculate paths. Please try again.");
+    alert("Грешка при пресмятането на пътищата. Опитай отново!");
   } finally {
     loader_overlay.classList.remove("active");
     calc_btn.disabled = false;
