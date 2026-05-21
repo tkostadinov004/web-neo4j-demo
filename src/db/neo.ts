@@ -19,27 +19,29 @@ export class NeoResponse {
   }
 }
 
-export async function find_shortest_path_nodes(source_id: number, target_ids: number[]): Promise<Map<number, NeoResponse>> {
+export async function find_shortest_path_nodes(source_id: number, target_ids: number[]): Promise<string> {
   const session = create_session();
   const res = await session.executeRead((tx) =>
     tx.run(
       `
-        MATCH (start:Intersection {id: $source_id})
-        MATCH (end:Intersection) WHERE end.id IN $target_ids
+        CALL apoc.export.csv.query("
+          MATCH (start:Intersection {id: $source_id})
+          MATCH (end:Intersection) WHERE end.id IN $target_ids
 
-        CALL gds.shortestPath.dijkstra.stream('streetNetwork', {
-          sourceNode: start,
-          targetNode: end,
-          relationshipWeightProperty: 'cost'
-        })
-        YIELD path, totalCost
+          CALL gds.shortestPath.dijkstra.stream('streetNetwork', {
+            sourceNode: start,
+            targetNode: end,
+            relationshipWeightProperty: 'cost'
+          })
+          YIELD path, totalCost
 
-        RETURN end.id as end_id, totalCost, [node IN nodes(path) | node.geom] as geom_sequence;
+          RETURN end.id as end_id, totalCost, apoc.text.join([node IN nodes(path) |  node.geom], ', ') as geom_sequence
+        ", null, {stream:true, params: {source_id: $source_id, target_ids: $target_ids}})
+        YIELD data
+        RETURN data;
     `,
       { source_id: source_id.toString(), target_ids: target_ids.map((t) => t.toString()) }
     )
   );
-  let result: Map<number, NeoResponse> = new Map();
-  res.records.forEach((r) => result.set(r.get("end_id"), new NeoResponse(r.get("end_id"), r.get("geom_sequence"), r.get("totalCost"))));
-  return result;
+  return res.records[0].get("data");
 }

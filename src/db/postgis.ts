@@ -1,6 +1,19 @@
-import { Pool } from "pg";
+import { Pool, PoolClient } from "pg";
 import format from "pg-format";
 import { Cinema } from "../model/cinema";
+import { from } from "pg-copy-streams";
+import { Readable } from "stream";
+import { pipeline } from "stream/promises";
+
+export class Path {
+  cost: number;
+  line_geojson: string;
+
+  constructor(cost: number, line_geojson: string) {
+    this.cost = cost;
+    this.line_geojson = line_geojson;
+  }
+}
 
 const get_pg_pool = function () {
   return new Pool({
@@ -40,29 +53,41 @@ export async function get_closest_vertex_id(lat: number, lon: number): Promise<n
   }
 }
 
-export async function get_path_by_nodes(nodes: string): Promise<string | null> {
+async function import_data(conn: PoolClient, nodes: string) {
+  const stream = conn.query(from("copy path_sequences (object_id, cost, geom_path) from STDIN with CSV HEADER"));
+  const sourceStream = Readable.from(nodes);
+
+  await pipeline(sourceStream, stream);
+}
+
+export async function get_path_by_nodes(nodes: string): Promise<Map<number, Path>> {
   const pool: Pool = get_pg_pool();
   let conn;
   try {
     conn = await pool.connect();
+    await import_data(conn, nodes);
+
     const res = await conn.query(
-      format(
+      `
+          with nodes as (
+              select object_id, cost, node_geom as geom, ord
+              from path_sequences
+              cross join lateral unnest(string_to_array(geom_path, ', ')) with ordinality as t(node_geom, ord)
+          ), pair_edges as (
+              select n1.object_id, n1.cost, st_makeline(n1.geom, n2.geom) as line_between
+              from nodes as n1
+              join nodes as n2 on n1.object_id = n2.object_id and n2.ord = n1.ord + 1
+          )
+          select object_id, cost, st_asgeojson(st_union(line_between)) as path
+          from pair_edges
+          group by object_id, cost;
         `
-        with nodes as (
-            select st_geomfromgeojson(node_geom) as geom, ord
-            from unnest(string_to_array(%L, ', '))
-            with ordinality as t(node_geom, ord)
-        ), pair_edges as (
-            select st_makeline(n1.geom, n2.geom) as line_between
-            from nodes as n1
-            join nodes as n2 on n2.ord = n1.ord + 1
-        )
-        select st_asgeojson(st_union(line_between)) as path from pair_edges;
-        `,
-        nodes
-      )
     );
-    return res.rowCount == 0 ? null : res.rows[0].path;
+    let result: Map<number, Path> = new Map();
+    res.rows.forEach((r) => result.set(r.object_id, new Path(r.cost, r.path)));
+
+    await conn.query("truncate table path_sequences;");
+    return result;
   } finally {
     if (conn) {
       conn.release();
@@ -83,7 +108,7 @@ export async function get_all_cinemas(): Promise<Cinema[]> {
 	      from cinemas;
       `
     );
-    return res.rows.map((r) => new Cinema(r.id, r.lat, r.lon, r.name, r.closest_vertex));
+    return res.rows.map((r) => new Cinema(r.id, r.lat, r.lon, r.name, Number.parseInt(r.closest_vertex)));
   } finally {
     if (conn) {
       conn.release();

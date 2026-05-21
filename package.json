@@ -15,6 +15,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^25.8.0",
     "@types/pg": "^8.20.0",
+    "@types/pg-copy-streams": "^1.2.5",
     "@types/pg-format": "^1.0.5",
     "typescript": "^6.0.3"
   },
@@ -23,6 +24,7 @@
     "express": "^5.2.1",
     "neo4j-driver": "^6.0.1",
     "pg": "^8.20.0",
+    "pg-copy-streams": "^7.0.0",
     "pg-format": "^1.0.4"
   }
 }
