@@ -1,6 +1,5 @@
 import { find_shortest_path_nodes, NeoResponse } from "./db/neo";
 import { get_all_cinemas, get_closest_vertex_id, get_path_by_nodes } from "./db/postgis";
-import { Cinema } from "./model/cinema";
 
 export class ShortestPathResponse {
   cinema_id: number;
