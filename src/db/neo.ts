@@ -40,6 +40,29 @@ export async function find_shortest_path_nodes(source_id: number, target_ids: nu
     )
   );
   let result: Map<number, NeoResponse> = new Map();
-  res.records.forEach((r) => result.set(r.get("end_id"), new NeoResponse(r.get("end_id"), r.get("geom_sequence"), r.get("totalCost"))));
+  res.records.forEach((r) => result.set(Number.parseInt(r.get("end_id")), new NeoResponse(Number.parseInt(r.get("end_id")), r.get("geom_sequence"), r.get("totalCost"))));
   return result;
+}
+
+export async function init_street_graph() {
+  const session = create_session();
+  await session.executeWrite((tx) => tx.run(`CALL gds.graph.drop('streetNetwork', false);`));
+  await session.executeWrite((tx) =>
+    tx.run(
+      `
+        CALL gds.graph.project(
+          'streetNetwork',
+          'Intersection',
+          {
+            ROAD: {
+              orientation: 'UNDIRECTED'
+            }
+          },
+          {
+            relationshipProperties: 'cost'
+          }
+        );  
+      `
+    )
+  );
 }
