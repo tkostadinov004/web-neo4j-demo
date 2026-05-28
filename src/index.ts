@@ -2,6 +2,7 @@ import express from "express";
 import { get_all_cinemas } from "./db/postgis";
 import path from "path";
 import { fetch_distance_to_cinemas } from "./cinema_service";
+import { init_street_graph } from "./db/neo";
 
 require("dotenv").config();
 const port = "3000";
@@ -26,6 +27,9 @@ app.get("/distance_to_cinemas", async (req, res) => {
   res.send(await fetch_distance_to_cinemas(Number.parseFloat(req.query.lat.toString()), Number.parseFloat(req.query.lon.toString())));
 });
 
-app.listen(port, () => {
+app.listen(port, async () => {
+  console.log("Creating street graph...");
+  await init_street_graph();
+  console.log("Street graph created!");
   console.log(`Demo app listening on port ${port}`);
 });
